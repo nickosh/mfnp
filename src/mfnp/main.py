@@ -9,8 +9,8 @@ import sys
 from dearpygui import core
 from dearpygui.demo import show_demo
 
-from app import init, ui
-from app.logger import LoggerHandler
+from mfnp import config, ui
+from mfnp.logger import LoggerHandler
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 

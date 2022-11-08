@@ -1,0 +1,29 @@
+[project]
+name = "mfnp"
+version = "0.2.0"
+description = "Mainframe Notepad — simple JCL editor with ability to send jobs to mainframe via FTP and receive results"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+keywords = ["python", "editor", "gui", "notepad", "ftp", "jcl", "mainframe", "zos", "zosmf", "dearpygui", "mainframe-automation"]
+authors = [
+    {name = "Nikolay Shishov", email = "nikolay.shishov@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python"
+]
+
+dependencies = [
+    "dearpygui ~= 1.8.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "flake8 >= 5.0.4",
+    "black >= 22.10.0",
+    "isort >= 5.10.1"
+]
+
+[project.urls]
+repository = "https://github.com/nickosh/mfnp"

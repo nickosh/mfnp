@@ -2,9 +2,9 @@ from pathlib import Path
 
 from dearpygui import core, simple
 
-from app.init import version
-from app.mfconn import MFConnector
-from app.templates import presendCommand
+from mfnp.config import version
+from mfnp.mfconn import MFConnector
+from mfnp.templates import presendCommand
 
 
 def getJclFiles(folder):
