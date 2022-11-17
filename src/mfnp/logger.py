@@ -1,13 +1,32 @@
-import logging
+import logging as pylogger
+from dearpygui_ext.logger import mvLogger as uiLogger
+import sys
+
+pylogger.basicConfig(stream=sys.stdout, level=pylogger.DEBUG)
 
 
-class LoggerHandler:
-    def new(name: str, level: str = "debug"):
+def singleton(cls, *args, **kw):
+    instances = {}
+
+    def _singleton(*args, **kw):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+
+    return _singleton
+
+
+@singleton
+class LoggerHandler(object):
+    def __init__(
+        self, name: str = "mainlogger", level: str = "debug", uilog: uiLogger = None
+    ):
         """Create new logger object.
 
         Args:
             name (str): name of logger.
             level (str): set lever for logger, can be "info", "warn", "error" or "debug".
+            parent (str): set parent dearpygui window
 
         Raises:
             ValueError: if logger level is unknown.
@@ -15,15 +34,35 @@ class LoggerHandler:
         Returns:
             obj: return logger object.
         """
-        logger = logging.getLogger(name)
+        self.pylog = pylogger.getLogger(name)
+        self.uilog = uilog
         if level == "info":
-            logger.setLevel(logging.INFO)
+            self.pylog.setLevel(pylogger.INFO)
         elif level == "warn":
-            logger.setLevel(logging.WARNING)
+            self.pylog.setLevel(pylogger.WARNING)
         elif level == "error":
-            logger.setLevel(logging.ERROR)
+            self.pylog.setLevel(pylogger.ERROR)
         elif level == "debug":
-            logger.setLevel(logging.DEBUG)
+            self.pylog.setLevel(pylogger.DEBUG)
         else:
             raise ValueError("Unknown logger level")
-        return logger
+
+    def debug(self, message: str):
+        self.pylog.debug(message)
+        self.uilog.log_debug(message)
+
+    def info(self, message: str):
+        self.pylog.info(message)
+        self.uilog.log_info(message)
+
+    def warning(self, message: str):
+        self.pylog.warning(message)
+        self.uilog.log_warning(message)
+
+    def error(self, message: str):
+        self.pylog.error(message)
+        self.uilog.log_error(message)
+
+    def critical(self, message: str):
+        self.pylog.critical(message)
+        self.uilog.log_critical(message)

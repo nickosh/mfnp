@@ -3,151 +3,119 @@ import re
 import socket
 from ftplib import FTP, all_errors
 from time import sleep
+from typing import Optional
 
-from dearpygui import core
+import dearpygui.dearpygui as dpg
 
-from .logger import LoggerHandler
+from logger import LoggerHandler
 
 
 class MFConnector:
-    def __new__(
-        cls,
-        user: str,
-        passwd: str,
-        ip: str,
-        ftp_port: int = 21,
-    ):
-        if not ip or not user or not passwd or not ftp_port:
-            return None
-
-        instance = super().__new__(cls)
-        instance.pylog = LoggerHandler.new(__name__)
-        return instance
-
     def __init__(
         self,
         user: str,
         passwd: str,
         ip: str,
         ftp_port: int = 21,
-    ):
+    ) -> None:
         self.ip = ip
         self.ftp_port = ftp_port
         self.username = user
         self.password = passwd
-        self.log("info", "Starting connect initiation...")
+        self.log = LoggerHandler(__name__)
         self.conn = self._job_connect()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._ftp_done(self.conn)
 
-    def log(self, level: str, message: str):
-        if level == "info":
-            self.pylog.info(message)
-            core.log_info(f"{message}", logger="Output")
-        elif level == "warn":
-            self.pylog.warning(message)
-            core.log_warning(f"{message}", logger="Output")
-        elif level == "error":
-            self.pylog.error(message)
-            core.log_error(f"{message}", logger="Output")
-        elif level == "debug":
-            self.pylog.debug(message)
-            core.log_debug(f"[{__name__}]: {message}", logger="Output")
-        else:
-            self.log("error", "Unknown logger level")
-
-    def _ftp_connect(self, ip: str, port: int, user: str, passwd: str):
+    def _ftp_connect(self, ip: str, port: int, user: str, passwd: str) -> FTP:
         try:
             ftp = FTP(host=ip, user=user, passwd=passwd, timeout=600)
             # ftp.set_debuglevel(2)
-            self.log("info", f"We connected to {user}@{ip}:{port}")
+            self.log.info(f"We connected to {user}@{ip}:{port}")
             return ftp
         except all_errors as msg:
-            self.log("error", msg)
+            self.log.error(str(msg))
 
-    def _job_connect(self, job_remote_patch: str = ""):
+    def _job_connect(self) -> FTP:
         try:
             ftp = self._ftp_connect(
                 self.ip, self.ftp_port, self.username, self.password
             )
             return ftp
         except all_errors as msg:
-            self.log("error", msg)
+            self.log.error(str(msg))
 
-    def _job_run(self, ftp: FTP, job_name: str, job_data: str):
+    def _job_run(self, ftp: FTP, job_name: str, job_data: str) -> Optional[str]:
+        if ftp:
+            try:
+                ftp.voidcmd("NOOP")
+            except all_errors as msg:
+                self.log.error(str(msg))
+                return None
+        else:
+            self.log.error("FTP connection not established")
+            return None
         try:
             ftp.voidcmd("site filetype=JES NOJESGETBYDSN")
             sleep(1)
-            self.log("info", f"Run job: {job_name}")
+            self.log.info(f"Run job: {job_name}")
             reply = ftp.storlines(
                 f"STOR {job_name}", io.BytesIO(job_data.encode("utf-8"))
             )
             sleep(1)
             ftp.voidcmd("site filetype=SEQ")
-            id = re.search("J\\d+|JOB\\d+", reply)
-            if id:
-                id = id.group(0)
-                return id
+            job_id = re.search("J\\d+|JOB\\d+", reply)
+            if job_id:
+                job_id = job_id.group(0)
+                return job_id
             else:
-                self.log("error", f"Can't get job id. MF reply: {reply}")
+                self.log.error(f"Can't get job id. MF reply: {reply}")
         except socket.timeout:
-            self.log("debug", "FTP connect timed out.")
+            self.log.debug("FTP connect timed out.")
         except all_errors as msg:
-            self.log("error", msg)
+            self.log.error(str(msg))
 
-    def _job_result(self, ftp: FTP, job_id: str, user: str):
+    def _job_result(self, ftp: FTP, job_id: str, user: str) -> list:
         try:
             ftp.voidcmd("site filetype=JES NOJESGETBYDSN")
             ftp.voidcmd("site JESJOBNAME=*")
             ftp.voidcmd("site JESSTATUS=*")
             ftp.voidcmd(f"site JESOWNER={user.upper()}")
             sleep(3)
-            getStatus = True
-            getStatusTry = 0
+            get_status: bool = True
+            get_status_try: int = 0
             output = None
             rc = None
-            while getStatus:
-                getStatusTry += 1
+            while get_status:
+                get_status_try += 1
                 joblist = []
                 ftp.dir(joblist.append)
                 for job in joblist:
-                    if f"{job_id}" in job:
+                    if str(job_id) in job:
                         rc = re.search(
                             r".+(RC=\d+|RC\sunknown|ABEND=\d+|JCL\serror)", job
                         )
-                        if rc:
-                            if rc.group(1):
-                                rc = rc.group(1)
-                                if rc == "RC=0000":
-                                    self.log(
-                                        "info",
-                                        f"Job {job_id} done with {rc}.",
-                                    )
-                                else:
-                                    self.log(
-                                        "warn",
-                                        f"Job {job_id} done with {rc}.",
-                                    )
-                                getStatus = False
-                if getStatusTry > 30:
-                    self.log(
-                        "warn",
+                        if rc and rc.group(1):
+                            rc = rc.group(1)
+                            if rc == "RC=0000":
+                                self.log.info(f"Job {job_id} done with {rc}.")
+                            else:
+                                self.log.warning(f"Job {job_id} done with {rc}.")
+                            get_status = False
+                if get_status_try > 30:
+                    self.log.warning(
                         f"Job {job_id} still not done. Too many tries. Timeout.",
                     )
                     break
                 if not rc:
                     timewait = 15
-                    self.log(
-                        "info",
-                        f"Job {job_id} in work. Wait {timewait} sec and check. Try: {getStatusTry}",
+                    self.log.info(
+                        f"Job {job_id} in work. Wait {timewait} sec and check. Try: {get_status_try}"
                     )
                     sleep(timewait)
             output = []
-            self.log(
-                "info",
-                "Collecting job detailed output...",
-            )
+            self.log.info("Collecting job detailed output...")
             ftp.retrlines(f"RETR {job_id}.x", output.append)
             sleep(1)
             ftp.voidcmd("site filetype=SEQ")
@@ -156,25 +124,28 @@ class MFConnector:
                 """{}""".format("\n".join(output[1:])),
             ]
         except socket.timeout:
-            self.log("debug", "FTP connect timed out.")
+            self.log.debug("FTP connect timed out")
         except all_errors as msg:
-            self.log("error", msg)
+            self.log.error(str(msg))
 
-    def _ftp_done(self, ftp: FTP):
+    def _ftp_done(self, ftp: FTP) -> None:
         try:
-            self.log("info", "Close connection")
+            self.log.info("Close connection")
             ftp.quit()
         except all_errors as msg:
-            self.log("error", msg)
+            self.log.error(str(msg))
 
-    def send(self, job_name: str, job_data: str, results: bool = True):
+    def send(
+        self, job_name: str, job_data: str, results: bool = True
+    ) -> Optional[list]:
         job_id = self._job_run(self.conn, job_name, job_data)
-        output = ""
+        if not job_id:
+            return None
         if results:
             if job_id:
-                output = self._job_result(self.conn, job_id, self.username)
+                output: list = self._job_result(self.conn, job_id, self.username)
             else:
-                self.log("error", "Job not started. Something wrong!")
+                self.log.error("Job not started. Something wrong!")
             return output
         else:
             return ["Without waiting for results", ""]
