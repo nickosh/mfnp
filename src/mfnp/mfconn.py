@@ -26,7 +26,8 @@ class MFConnector:
         self.conn = self._job_connect()
 
     def __del__(self) -> None:
-        self._ftp_done(self.conn)
+        if self.conn:
+            self._ftp_done(self.conn)
 
     def _ftp_connect(self, ip: str, port: int, user: str, passwd: str) -> FTP:
         try:

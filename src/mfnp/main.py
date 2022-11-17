@@ -110,6 +110,7 @@ def editors_reset() -> None:
 
 def mf_send(sender):
     dpg.configure_item("button_mf_send", enabled=False)
+    dpg.configure_item("mf_job_process_group", show=True)
     mf = MFConnector(
         user=dpg.get_value("config_user"),
         passwd=dpg.get_value("config_passw"),
@@ -146,9 +147,10 @@ def mf_send(sender):
             log.warning("No JCL data, send skipped")
         if dpg.get_value("result_details"):
             dpg.configure_item("window_result", show=True)
-        log.info("All jobs sended")
+        log.info("All jobs processed")
     else:
         log.error("No MF connection, please check MF options!")
+    dpg.configure_item("mf_job_process_group", show=False)
     dpg.configure_item("button_mf_send", enabled=True)
 
 
@@ -225,11 +227,21 @@ with dpg.window(tag="window_main"):
                     dpg.add_checkbox(label="Send preSend JCL", source="is_presend")
                     dpg.add_checkbox(label="Wait for results", source="result_wait")
                     dpg.add_checkbox(
-                        label="Get detailed MF results", source="result_details"
+                        label="Show detailed MF results", source="result_details"
                     )
                     dpg.add_button(
                         label="[ Send ]", tag="button_mf_send", callback=mf_send
                     )
+                    with dpg.group(
+                        horizontal=True,
+                        horizontal_spacing=10,
+                        tag="mf_job_process_group",
+                        show=False,
+                    ):
+                        dpg.add_text(
+                            default_value="In progress...",
+                            color=[255, 255, 0],
+                        )
 
     with dpg.child_window(label="logger", autosize_x=True, height=140):
         uilogger: mvLogger = mvLogger(parent="logger")
