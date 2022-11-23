@@ -3,17 +3,15 @@
 # Copyright © 2022 Nikolay Shishov. All rights reserved.
 # SPDX-License-Identifier: MIT
 
+from pathlib import Path
+
 import dearpygui.dearpygui as dpg
 from dearpygui_ext.logger import mvLogger
-
-# from mfnp import APP_VERSION
-from pathlib import Path
 from logger import LoggerHandler
 
-# from mfnp import gui
-
-CMD_PRESEND: str = "test_presend"
+JCLFILE_PRESEND: str = "presend.jcl"
 APP_INIT_FILE: str = "init.ini"
+APP_WORKDIR = Path(__file__).resolve().parents[0]
 
 dpg.create_context()
 dpg.configure_app(init_file=APP_INIT_FILE)
@@ -40,6 +38,32 @@ with dpg.value_registry():
     dpg.add_string_value(default_value="", tag="result_mf_main_out")
 
 
+def app_load_params():
+    try:
+        dpg.set_value("result_wait", cfg_app.getboolean("result_wait"))
+        dpg.set_value("result_details", cfg_app.getboolean("result_details"))
+        dpg.set_value("config_user", cfg_remote["user"])
+        dpg.set_value("config_ip", cfg_remote["ip"])
+        dpg.set_value("config_port", cfg_remote.getint("port"))
+        dpg.set_value("is_presend", cfg_jcl.getboolean("is_presend"))
+        dpg.set_value("jcl_folder_path", cfg_jcl["jcl_folder_path"])
+        dpg.set_value("jcl_file_name", cfg_jcl["jcl_file_name"])
+    except Exception as e:
+        msg = f"Can't load parameters from config.ini: {str(e)}"
+        log.error(msg)
+        raise EnvironmentError(msg)
+
+
+def app_restore_env():
+    if dpg.get_value("jcl_folder_path"):
+        filelist_load(dpg.get_value("jcl_folder_path"))
+    if dpg.get_value("jcl_file_name"):
+        file_load_jcl()
+        dpg.configure_item(
+            "listbox_files_jcl", default_value=dpg.get_value("jcl_file_name")
+        )
+
+
 def app_before_exit() -> None:
     log.info("App going to exit. Bye bye.")
     dpg.save_init_file(APP_INIT_FILE)
@@ -59,7 +83,12 @@ def app_before_exit() -> None:
 
 
 def file_load_presend() -> None:
-    dpg.set_value("editor_text_presend", str(CMD_PRESEND))
+    presend_file = Path(APP_WORKDIR, JCLFILE_PRESEND)
+    if presend_file.exists():
+        dpg.set_value("editor_text_presend", str(presend_file.read_text()))
+        log.info("PreSend JCL file loaded")
+    else:
+        log.error(f"Can't found JCL presend file: {str(presend_file)}")
 
 
 def file_load_jcl() -> None:
@@ -74,6 +103,15 @@ def file_load_jcl() -> None:
             log.error(f"Something wrong with file opening: {e}")
     else:
         dpg.set_value("editor_text_main", "")
+
+
+def file_save(filefolder: str, filename: str, data: str):
+    jclfile = Path(filefolder, filename)
+    if jclfile.exists():
+        jclfile.write_text(data)
+        log.info(f"Changes successfully saved to file: {jclfile}")
+    else:
+        log.error(f"Can't save file - {jclfile} not exist")
 
 
 def filelist_load(folder: str) -> None:
@@ -114,14 +152,32 @@ def folder_picker_close(sender, data) -> None:
     log.info("Folder not selected")
 
 
-def mf_send(sender):
-    dpg.configure_item("button_mf_send", enabled=False)
-    dpg.configure_item("mf_job_process_group", show=True)
+def mf_send() -> None:
+    def mf_process_start() -> None:
+        dpg.configure_item("button_mf_send", enabled=False)
+        dpg.configure_item("mf_job_process_group", show=True)
+
+    def mf_process_finish() -> None:
+        dpg.configure_item("mf_job_process_group", show=False)
+        dpg.configure_item("button_mf_send", enabled=True)
+
+    mf_process_start()
+
+    config_user: str = dpg.get_value("config_user")
+    config_passwd: str = dpg.get_value("config_passw")
+    config_ip: str = dpg.get_value("config_ip")
+    config_port: int = dpg.get_value("config_port")
+
+    if not config_user or not config_passwd or not config_ip or not config_port:
+        log.error("Missing FTP connection information")
+        mf_process_finish()
+        return None
+
     mf = MFConnector(
-        user=dpg.get_value("config_user"),
-        passwd=dpg.get_value("config_passw"),
-        ip=dpg.get_value("config_ip"),
-        ftp_port=dpg.get_value("config_port"),
+        user=config_user,
+        passwd=config_passwd,
+        ip=config_ip,
+        ftp_port=config_port,
     )
     if mf:
         presend_active: bool = dpg.get_value("is_presend")
@@ -156,8 +212,7 @@ def mf_send(sender):
         log.info("All jobs processed")
     else:
         log.error("No MF connection, please check MF options!")
-    dpg.configure_item("mf_job_process_group", show=False)
-    dpg.configure_item("button_mf_send", enabled=True)
+    mf_process_finish()
 
 
 dpg.add_file_dialog(
@@ -220,9 +275,17 @@ with dpg.window(tag="window_main"):
                     )
                     with dpg.group(horizontal=True, horizontal_spacing=20):
                         dpg.add_button(
-                            label="Reset changes", callback=file_load_presend
+                            label="Reset changes", callback=lambda: file_load_presend()
                         )
-                        dpg.add_button(label="Save changes")
+                        dpg.add_button(
+                            label="Save changes",
+                            tag="btn_filesave_presend",
+                            callback=lambda: file_save(
+                                str(APP_WORKDIR),
+                                "presend.jcl",
+                                str(dpg.get_value("editor_text_presend")),
+                            ),
+                        )
                         dpg.add_checkbox(label="Send preSend JCL", source="is_presend")
                 with dpg.collapsing_header(label="JCL Editor", default_open=True):
                     dpg.add_input_text(
@@ -232,8 +295,18 @@ with dpg.window(tag="window_main"):
                         height=310,
                     )
                     with dpg.group(horizontal=True, horizontal_spacing=20):
-                        dpg.add_button(label="Reset changes", callback=file_load_jcl)
-                        dpg.add_button(label="Save changes")
+                        dpg.add_button(
+                            label="Reset changes", callback=lambda: file_load_jcl()
+                        )
+                        dpg.add_button(
+                            label="Save changes",
+                            tag="btn_filesave_main",
+                            callback=lambda: file_save(
+                                str(dpg.get_value("jcl_folder_path")),
+                                str(dpg.get_value("jcl_file_name")),
+                                str(dpg.get_value("editor_text_main")),
+                            ),
+                        )
                 dpg.add_separator()
                 with dpg.group(horizontal=True, horizontal_spacing=20):
                     dpg.add_button(
@@ -245,7 +318,9 @@ with dpg.window(tag="window_main"):
                         label="Show detailed MF results", source="result_details"
                     )
                     dpg.add_button(
-                        label="[ Send ]", tag="button_mf_send", callback=mf_send
+                        label="[ Send ]",
+                        tag="button_mf_send",
+                        callback=lambda: mf_send(),
                     )
                     with dpg.group(
                         horizontal=True,
@@ -259,10 +334,23 @@ with dpg.window(tag="window_main"):
                         )
 
     with dpg.child_window(label="logger", autosize_x=True, height=140):
+        # Creation of DPG logger visual component
         uilogger: mvLogger = mvLogger(parent="logger")
 
 with dpg.window(tag="window_result", label="MF Job Results", show=False):
-    dpg.add_text("PreSend Job Result:")
+    with dpg.group(horizontal=True, horizontal_spacing=20):
+        dpg.add_text("PreSend Job Result:")
+        dpg.add_text(source="result_mf_presend_rc")
+    with dpg.group(horizontal=True, horizontal_spacing=20):
+        dpg.add_text("Main Job Result:")
+        dpg.add_text(source="result_mf_main_rc")
+    dpg.add_input_text(
+        source="result_mf_main_out",
+        multiline=True,
+        readonly=True,
+        width=700,
+        height=500,
+    )
 
 
 dpg.create_viewport(title="Mainframe Notepad")
@@ -270,35 +358,18 @@ dpg.setup_dearpygui()
 dpg.show_viewport()
 dpg.set_primary_window("window_main", True)
 
+# Because of current DPG limitations logger singleton must be created after visual component
 log = LoggerHandler("log", "debug", uilogger)
 log.info("App started")
 
-from mfconn import MFConnector
 from config import cfg_app, cfg_jcl, cfg_remote, config_save
 
-# Load app params from config.ini
-try:
-    dpg.set_value("result_wait", cfg_app.getboolean("result_wait"))
-    dpg.set_value("result_details", cfg_app.getboolean("result_details"))
-    dpg.set_value("config_user", cfg_remote["user"])
-    dpg.set_value("config_ip", cfg_remote["ip"])
-    dpg.set_value("config_port", cfg_remote.getint("port"))
-    dpg.set_value("is_presend", cfg_jcl.getboolean("is_presend"))
-    dpg.set_value("jcl_folder_path", cfg_jcl["jcl_folder_path"])
-    dpg.set_value("jcl_file_name", cfg_jcl["jcl_file_name"])
-except Exception as e:
-    msg = f"Can't load parameters from config.ini: {e}"
-    log.error(msg)
-    raise EnvironmentError(msg)
+# Imports which uses logger singleton must be inited after singleton creation
+from mfconn import MFConnector
 
-# Restore editor env
-if dpg.get_value("jcl_folder_path"):
-    filelist_load(dpg.get_value("jcl_folder_path"))
-if dpg.get_value("jcl_file_name"):
-    file_load_jcl()
-    dpg.configure_item(
-        "listbox_files_jcl", default_value=dpg.get_value("jcl_file_name")
-    )
+app_load_params()
+file_load_presend()
+app_restore_env()
 
 dpg.set_exit_callback(app_before_exit)
 dpg.start_dearpygui()
