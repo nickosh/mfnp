@@ -359,9 +359,8 @@ dpg.set_primary_window("window_main", True)
 log = LoggerHandler("log", "debug", uilogger)
 log.info("App started")
 
-from config import cfg_app, cfg_jcl, cfg_remote, config_save
-
 # Imports which uses logger singleton must be inited after singleton creation
+from config import cfg_app, cfg_jcl, cfg_remote, config_save
 from mfconn import MFConnector
 
 app_load_params()
