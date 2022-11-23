@@ -9,12 +9,10 @@ import dearpygui.dearpygui as dpg
 from dearpygui_ext.logger import mvLogger
 from logger import LoggerHandler
 
-JCLFILE_PRESEND: str = "presend.jcl"
-APP_INIT_FILE: str = "init.ini"
 APP_WORKDIR = Path(__file__).resolve().parents[0]
+JCLFILE_PRESEND: str = "presend.jcl"
 
 dpg.create_context()
-dpg.configure_app(init_file=APP_INIT_FILE)
 
 with dpg.value_registry():
     dpg.add_string_value(default_value="", tag="jcl_folder_path")
@@ -66,7 +64,6 @@ def app_restore_env():
 
 def app_before_exit() -> None:
     log.info("App going to exit. Bye bye.")
-    dpg.save_init_file(APP_INIT_FILE)
 
     cfg_app["result_wait"] = str(dpg.get_value("result_wait"))
     cfg_app["result_details"] = str(dpg.get_value("result_details"))
