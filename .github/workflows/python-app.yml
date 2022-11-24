@@ -33,13 +33,11 @@ jobs:
     - name: Build Ubuntu app with PyInstaller
       run: |
         pip install PyInstaller
-        pwd
         pyinstaller --onefile --noconsole --name=MFNotepad src/mfnp/main.py
-        pwd
-        cp src/mfnp/presend.jcl src/dist/
-        cp src/mfnp/config.ini src/dist/
+        cp src/mfnp/presend.jcl dist/
+        cp src/mfnp/config.ini dist/
 
     - uses: actions/upload-artifact@v3.1.1
       with:
         name: MFNotepad
-        path: src/dist/
+        path: dist/
