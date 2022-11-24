@@ -1,16 +1,16 @@
-import configparser
+from configparser import ConfigParser
 from pathlib import Path
 
 from logger import LoggerHandler
 
-log = LoggerHandler(__name__)
-workdir = Path(__file__).resolve().parents[0]
+log: LoggerHandler = LoggerHandler(__name__)
+workdir: Path = Path(__file__).resolve().parents[0]
 
 
 def config_init():
     global config, config_path
 
-    config = configparser.ConfigParser()
+    config = ConfigParser()
     config_path = Path(workdir, "config.ini")
     if config_path.exists():
         config.read(config_path)

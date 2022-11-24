@@ -1,12 +1,13 @@
 import logging as pylogger
-from dearpygui_ext.logger import mvLogger as uiLogger
 import sys
+
+from dearpygui_ext.logger import mvLogger as uiLogger
 
 pylogger.basicConfig(stream=sys.stdout, level=pylogger.DEBUG)
 
 
 def singleton(cls, *args, **kw):
-    instances = {}
+    instances: dict = {}
 
     def _singleton(*args, **kw):
         if cls not in instances:
@@ -34,8 +35,8 @@ class LoggerHandler(object):
         Returns:
             obj: return logger object.
         """
-        self.pylog = pylogger.getLogger(name)
-        self.uilog = uilog
+        self.pylog: pylogger = pylogger.getLogger(name)
+        self.uilog: uiLogger = uilog
         if level == "info":
             self.pylog.setLevel(pylogger.INFO)
         elif level == "warn":

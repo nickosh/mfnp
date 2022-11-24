@@ -9,7 +9,7 @@ import dearpygui.dearpygui as dpg
 from dearpygui_ext.logger import mvLogger
 from logger import LoggerHandler
 
-APP_WORKDIR = Path(__file__).resolve().parents[0]
+APP_WORKDIR: Path = Path(__file__).resolve().parents[0]
 JCLFILE_PRESEND: str = "presend.jcl"
 
 dpg.create_context()
@@ -65,14 +65,14 @@ def app_restore_env():
 def app_before_exit() -> None:
     log.info("App going to exit. Bye bye.")
 
-    cfg_app["result_wait"] = str(dpg.get_value("result_wait"))
-    cfg_app["result_details"] = str(dpg.get_value("result_details"))
-    cfg_remote["user"] = str(dpg.get_value("config_user"))
-    cfg_remote["ip"] = str(dpg.get_value("config_ip"))
-    cfg_remote["port"] = str(dpg.get_value("config_port"))
-    cfg_jcl["is_presend"] = str(dpg.get_value("is_presend"))
-    cfg_jcl["jcl_folder_path"] = str(dpg.get_value("jcl_folder_path"))
-    cfg_jcl["jcl_file_name"] = str(dpg.get_value("jcl_file_name"))
+    cfg_app["result_wait"]: str = str(dpg.get_value("result_wait"))
+    cfg_app["result_details"]: str = str(dpg.get_value("result_details"))
+    cfg_remote["user"]: str = str(dpg.get_value("config_user"))
+    cfg_remote["ip"]: str = str(dpg.get_value("config_ip"))
+    cfg_remote["port"]: str = str(dpg.get_value("config_port"))
+    cfg_jcl["is_presend"]: str = str(dpg.get_value("is_presend"))
+    cfg_jcl["jcl_folder_path"]: str = str(dpg.get_value("jcl_folder_path"))
+    cfg_jcl["jcl_file_name"]: str = str(dpg.get_value("jcl_file_name"))
     try:
         config_save()
     except Exception as e:
@@ -80,7 +80,7 @@ def app_before_exit() -> None:
 
 
 def file_load_presend() -> None:
-    presend_file = Path(APP_WORKDIR, JCLFILE_PRESEND)
+    presend_file: Path = Path(APP_WORKDIR, JCLFILE_PRESEND)
     if presend_file.exists():
         dpg.set_value("editor_text_presend", str(presend_file.read_text()))
         log.info("PreSend JCL file loaded")
@@ -103,7 +103,7 @@ def file_load_jcl() -> None:
 
 
 def file_save(filefolder: str, filename: str, data: str):
-    jclfile = Path(filefolder, filename)
+    jclfile: Path = Path(filefolder, filename)
     if jclfile.exists():
         jclfile.write_text(data)
         log.info(f"Changes successfully saved to file: {jclfile}")
@@ -112,7 +112,7 @@ def file_save(filefolder: str, filename: str, data: str):
 
 
 def filelist_load(folder: str) -> None:
-    files = list(Path(folder).glob("*.JCL"))
+    files: list = list(Path(folder).glob("*.JCL"))
     if len(files) > 0:
         log.info(f"{len(files)} JCL files found in {folder}")
         fnames: list = [file.name for file in files]
@@ -127,8 +127,8 @@ def filelist_open_file(sender) -> None:
         file_load_jcl()
 
 
-def folder_picker_open(sender, data) -> None:
-    selections = data["selections"]
+def folder_picker_open(_, data) -> None:
+    selections: dict = data["selections"]
     if len(selections) > 0:
         jcl_folder_path: Path = Path(selections[next(iter(selections))])
         # Workaround for DPG's bug - duplicated folder name in selection
@@ -136,7 +136,7 @@ def folder_picker_open(sender, data) -> None:
         jcl_folder_path = jcl_folder_path.parent
         # end of workaround
         if jcl_folder_path.exists():
-            valid_path = str(jcl_folder_path.resolve())
+            valid_path: str = str(jcl_folder_path.resolve())
             dpg.set_value("jcl_folder_path", valid_path)
             filelist_load(valid_path)
         else:

@@ -5,8 +5,6 @@ from ftplib import FTP, all_errors
 from time import sleep
 from typing import Optional
 
-import dearpygui.dearpygui as dpg
-
 from logger import LoggerHandler
 
 
@@ -18,12 +16,12 @@ class MFConnector:
         ip: str,
         ftp_port: int = 21,
     ) -> None:
-        self.ip = ip
-        self.ftp_port = ftp_port
-        self.username = user
-        self.password = passwd
-        self.log = LoggerHandler(__name__)
-        self.conn = self._job_connect()
+        self.ip: str = ip
+        self.ftp_port: int = ftp_port
+        self.username: str = user
+        self.password: str = passwd
+        self.log: LoggerHandler = LoggerHandler(__name__)
+        self.conn: FTP = self._job_connect()
 
     def __del__(self) -> None:
         if self.conn:
@@ -33,14 +31,14 @@ class MFConnector:
         try:
             ftp = FTP(host=ip, user=user, passwd=passwd, timeout=600)
             # ftp.set_debuglevel(2)
-            self.log.info(f"We connected to {user}@{ip}:{port}")
+            self.log.info(f"Connected to FTP {user}@{ip}:{port}")
             return ftp
         except all_errors as msg:
             self.log.error(str(msg))
 
     def _job_connect(self) -> FTP:
         try:
-            ftp = self._ftp_connect(
+            ftp: FTP = self._ftp_connect(
                 self.ip, self.ftp_port, self.username, self.password
             )
             return ftp
@@ -61,7 +59,7 @@ class MFConnector:
             ftp.voidcmd("site filetype=JES NOJESGETBYDSN")
             sleep(1)
             self.log.info(f"Run job: {job_name}")
-            reply = ftp.storlines(
+            reply: str = ftp.storlines(
                 f"STOR {job_name}", io.BytesIO(job_data.encode("utf-8"))
             )
             sleep(1)
