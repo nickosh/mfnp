@@ -7,7 +7,7 @@ from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 from dearpygui_ext.logger import mvLogger
-from logger import LoggerHandler
+from mfnp.logger import LoggerHandler
 
 APP_WORKDIR: Path = Path(__file__).resolve().parents[0]
 JCLFILE_PRESEND: str = "presend.jcl"
@@ -364,8 +364,8 @@ log = LoggerHandler("log", "debug", uilogger)
 log.info("App started")
 
 # Imports which uses logger singleton must be inited after singleton creation
-from config import cfg_app, cfg_jcl, cfg_remote, config_save
-from mfconn import MFConnector
+from mfnp.config import cfg_app, cfg_jcl, cfg_remote, config_save
+from mfnp.mfconn import MFConnector
 
 app_load_params()
 file_load_presend()

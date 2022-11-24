@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 from pathlib import Path
 
-from logger import LoggerHandler
+from mfnp.logger import LoggerHandler
 
 log: LoggerHandler = LoggerHandler(__name__)
 workdir: Path = Path(__file__).resolve().parents[0]

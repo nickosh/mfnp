@@ -5,7 +5,7 @@ from ftplib import FTP, all_errors
 from time import sleep
 from typing import Optional
 
-from logger import LoggerHandler
+from mfnp.logger import LoggerHandler
 
 
 class MFConnector:
