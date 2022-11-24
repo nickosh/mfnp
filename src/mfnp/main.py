@@ -3,13 +3,19 @@
 # Copyright © 2022 Nikolay Shishov. All rights reserved.
 # SPDX-License-Identifier: MIT
 
+import sys
 from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 from dearpygui_ext.logger import mvLogger
+
 from mfnp.logger import LoggerHandler
 
-APP_WORKDIR: Path = Path(__file__).resolve().parents[0]
+if getattr(sys, "frozen", False):
+    APP_WORKDIR: Path = Path(sys.executable).resolve().parents[0]
+elif __file__:
+    APP_WORKDIR: Path = Path(__file__).resolve().parents[0]
+
 JCLFILE_PRESEND: str = "presend.jcl"
 
 dpg.create_context()
