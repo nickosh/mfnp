@@ -33,7 +33,9 @@ jobs:
     - name: Build Ubuntu app with PyInstaller
       run: |
         pip install PyInstaller
+        pwd
         pyinstaller --onefile --noconsole --name=MFNotepad src/mfnp/main.py
+        pwd
         cp src/mfnp/presend.jcl src/dist/
         cp src/mfnp/config.ini src/dist/
 
