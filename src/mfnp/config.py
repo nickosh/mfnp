@@ -1,10 +1,15 @@
+import sys
 from configparser import ConfigParser
 from pathlib import Path
 
 from mfnp.logger import LoggerHandler
 
 log: LoggerHandler = LoggerHandler(__name__)
-workdir: Path = Path(__file__).resolve().parents[0]
+
+if getattr(sys, "frozen", False):
+    workdir: Path = Path(sys.executable).resolve().parents[0]
+elif __file__:
+    workdir: Path = Path(__file__).resolve().parents[0]
 
 
 def config_init():
