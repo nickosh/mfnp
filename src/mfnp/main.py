@@ -350,7 +350,11 @@ with dpg.window(tag="window_result", label="MF Job Results", show=False):
     )
 
 
-dpg.create_viewport(title="Mainframe Notepad")
+dpg.create_viewport(
+    title="Mainframe Notepad",
+    small_icon=str(Path(APP_WORKDIR, "mfnp-icon-small.ico").resolve()),
+    large_icon=str(Path(APP_WORKDIR, "mfnp-icon-big.ico").resolve()),
+)
 dpg.setup_dearpygui()
 dpg.show_viewport()
 dpg.set_primary_window("window_main", True)
