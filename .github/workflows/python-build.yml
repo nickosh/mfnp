@@ -10,9 +10,12 @@ permissions:
   contents: read
 
 jobs:
-  build-for-ubuntu:
+  build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -30,49 +33,22 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Build Ubuntu app with PyInstaller
+    - name: Build app with PyInstaller
       run: |
         pip install PyInstaller
-        pyinstaller --onefile --noconsole --name=MFNotepad src/mfnp/main.py
-        cp src/mfnp/presend.jcl dist/
-        cp src/mfnp/config.ini dist/
+        pyinstaller --onefile --noconsole --name=mfnp src/mfnp/main.py
+        if [ "$RUNNER_OS" == "Linux" ]; then
+            cp src/mfnp/presend.jcl dist/
+            cp src/mfnp/config.ini dist/
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+            copy src/mfnp/presend.jcl dist/
+            copy src/mfnp/config.ini dist/
+        else
+            echo "$RUNNER_OS not supported"
+            exit 1
+        fi
 
     - uses: actions/upload-artifact@v3.1.1
       with:
-        name: MFNotepad-ubuntu
-        path: dist/
-
-  build-for-windows:
-
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-    - name: Install dependencies
-      shell: pwsh
-      run: |
-        python -m pip install --upgrade pip
-        pip install .[dev]
-    - name: Lint with flake8
-      shell: pwsh
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Build Windows app with PyInstaller
-      shell: pwsh
-      run: |
-        pip install PyInstaller
-        pyinstaller --onefile --noconsole --name=MFNotepad src/mfnp/main.py
-        copy src/mfnp/presend.jcl dist/
-        copy src/mfnp/config.ini dist/
-
-    - uses: actions/upload-artifact@v3.1.1
-      with:
-        name: MFNotepad-windows
+        name: mfnp-$RUNNER_OS
         path: dist/
