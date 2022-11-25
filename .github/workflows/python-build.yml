@@ -34,21 +34,14 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Build app with PyInstaller
+      shell: bash
       run: |
         pip install PyInstaller
         pyinstaller --onefile --noconsole --name=mfnp src/mfnp/main.py
-        if [ "$RUNNER_OS" == "Linux" ]; then
-            cp src/mfnp/presend.jcl dist/
-            cp src/mfnp/config.ini dist/
-        elif [ "$RUNNER_OS" == "Windows" ]; then
-            copy src/mfnp/presend.jcl dist/
-            copy src/mfnp/config.ini dist/
-        else
-            echo "$RUNNER_OS not supported"
-            exit 1
-        fi
+        cp src/mfnp/presend.jcl dist/
+        cp src/mfnp/config.ini dist/
 
     - uses: actions/upload-artifact@v3.1.1
       with:
-        name: mfnp-$RUNNER_OS
+        name: mfnp-${{ runner.os }}
         path: dist/
